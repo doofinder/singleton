@@ -7,22 +7,28 @@ defmodule Singleton.Supervisor do
 
   require Logger
 
+  @init_options [
+    :max_restarts,
+    :max_seconds,
+    :max_children,
+    :extra_arguments,
+    :strategy
+  ]
+  @config_options Application.compile_env(:singleton, :dynamic_supervisor, [])
+
   def start_link(override_opts \\ []) do
+    override_opts = Keyword.merge(@config_options, override_opts)
+    {init_opts, genserver_opts} = Keyword.split(override_opts, @init_options)
+
     DynamicSupervisor.start_link(
       __MODULE__,
-      [],
-      dynamic_supervisor_options(override_opts)
+      init_opts,
+      genserver_opts
     )
   end
 
   @impl true
-  def init(_init_arg) do
-    DynamicSupervisor.init(strategy: :one_for_one)
-  end
-
-  defp dynamic_supervisor_options(override_opts) do
-    [strategy: :one_for_one]
-    |> Keyword.merge(Application.get_env(:singleton, :dynamic_supervisor, []))
-    |> Keyword.merge(override_opts)
+  def init(init_opts) do
+    DynamicSupervisor.init(init_opts)
   end
 end
